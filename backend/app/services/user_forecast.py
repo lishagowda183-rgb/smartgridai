@@ -162,19 +162,6 @@ def _weather_usage(series: pd.Series, days: int, forecast_type: str) -> dict:
         )
         status = {"status": "none", "label": "unavailable", "note": note}
         return {"used": False, "historical": None, "future": None, "status": status}
-    # Phase 4.2: verify historical weather covers the uploaded series dates.
-    # If the historical weather artifact timestamps don't overlap the series,
-    # the model cannot learn weather-consumption relationships for this dataset.
-    series_idx = pd.to_datetime(series.index)
-    hist_idx = historical.index
-    overlap = len(series_idx.intersection(hist_idx))
-    if overlap == 0:
-        note = (
-            "Historical weather data does not cover the uploaded series dates; "
-            "forecast generated using historical consumption patterns only."
-        )
-        status = {"status": "none", "label": "unavailable", "note": note}
-        return {"used": False, "historical": None, "future": None, "status": status}
     # Phase 4.1: track when the weather snapshot was fetched
     snap_result = weather.ensure_snapshot()
     fetched_at = weather.snapshot_fetched_at()
@@ -319,9 +306,19 @@ def _short_term_forecast(series: pd.Series, days: int, dataset_id: str,
     # Calendar feature generators for the iterated engine: each is a callable
     # Timestamp -> number, only emitted when the column is in `feature_names`
     # (so the non-festival Phase 5 path is untouched).
-    festival_frame = festival_calendar.festival_features(series.index)
+    # Generate festival features from the actual future forecast index so that
+    # the _feature_lookup mapping keys match the timestamps used during inference.
+    # Previously, features were generated from series.index (historical), causing
+    # _get(ts) to always return 0.0 for future timestamps since the timestamps
+    # never matched the historical index keys.
+    future_start = series.index.max() + pd.Timedelta(hours=1)
+    n_periods = days * 24
+    future_index = pd.date_range(
+        start=future_start, periods=n_periods, freq=ml_config.FREQUENCY
+    )
+    festival_frame = festival_calendar.festival_features(future_index)
     festival_extras = {
-        col: _feature_lookup(festival_frame[col], series.index.min())
+        col: _feature_lookup(festival_frame[col], future_index.min())
         for col in FESTIVAL_FEATURE_COLS
     }
 
@@ -337,6 +334,9 @@ def _short_term_forecast(series: pd.Series, days: int, dataset_id: str,
 
     # Reindex forecast to start from the current date (not series.index.max())
     # so short-term forecasts align with current weather forecasts.
+    # Use direct assignment instead of reindex to avoid NaN when timestamps
+    # from iterated_forecast (starting at series.index.max() + 1h) differ
+    # from the current-date new_index.
     forecast_start = datetime.now(timezone.utc).replace(tzinfo=None)
     original_start = forecast_native.index.min()
     original_end = forecast_native.index.max()
@@ -347,7 +347,8 @@ def _short_term_forecast(series: pd.Series, days: int, dataset_id: str,
         periods=n_periods,
         freq=forecast_native.index.freq or (original_end - original_start) / n_periods
     )
-    forecast = forecast_native.reindex(new_index)
+    forecast = pd.Series(forecast_native.values, index=new_index,
+                         name=forecast_native.name)
 
     return forecast.iloc[: days * 24], resid_std, weather_used
 
@@ -547,7 +548,8 @@ _LONG_TERM_WEATHER_NOTE = (
 )
 
 
-def weather_status(series: pd.Series, days: int, forecast_type: str, current_date: pd.Timestamp | None = None) -> dict:
+def weather_status(series: pd.Series, days: int, forecast_type: str,
+                   current_date: pd.Timestamp | None = None) -> dict:
     """Report how much of the forecast period real future weather covers."""
     if forecast_type == "long_term":
         return {"status": "not_available", "label": "long-term historical pattern",
@@ -564,7 +566,7 @@ def weather_status(series: pd.Series, days: int, forecast_type: str, current_dat
 
     wmin, wmax = times.min(), times.max()
     if current_date is None:
-        current_date = pd.Timestamp.now(tz=None)
+        current_date = series.index.max()
     fstart, fend = current_date, current_date + pd.Timedelta(days=days)
     if fstart > wmax or fend < wmin:
         return {"status": "none", "label": "unavailable",
