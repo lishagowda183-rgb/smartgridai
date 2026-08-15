@@ -1,0 +1,14 @@
+{
+  "name": "domestic_slabs",
+  "display_name": "Domestic Slab Pricing",
+  "currency": "INR",
+  "slabs": [
+    { "min_mwh": 0,     "max_mwh": 100,   "price_per_mwh": 3500.0 },
+    { "min_mwh": 100,   "max_mwh": 300,   "price_per_mwh": 4200.0 },
+    { "min_mwh": 300,   "max_mwh": null,  "price_per_mwh": 5000.0 }
+  ],
+  "fixed_charge_per_month": 200.0,
+  "tax_pct": 5.0,
+  "additional_charges": 25.0,
+  "billing_cycle": "monthly"
+}

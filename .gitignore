@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.kaggle/
+kaggle.json
+
+# Data (raw + processed artifacts)
+ml/data/raw/*
+ml/data/processed/*
+!ml/data/raw/.gitkeep
+!ml/data/processed/.gitkeep
+
+# User-uploaded datasets (Phase 11)
+ml/data/uploads/*
+!ml/data/uploads/.gitkeep
+
+# Model artifacts
+ml/models/*
+!ml/models/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+
+# Frontend (Phase 8)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/coverage/

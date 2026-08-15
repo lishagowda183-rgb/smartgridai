@@ -1,0 +1,13 @@
+{
+  "name": "time_of_use",
+  "display_name": "Time of Use (Peak/Off-Peak)",
+  "currency": "INR",
+  "unit_price_per_mwh": 4000.0,
+  "peak_hours": { "start": 17, "end": 22 },
+  "peak_multiplier": 1.5,
+  "off_peak_price_per_mwh": 2500.0,
+  "fixed_charge_per_month": 250.0,
+  "tax_pct": 5.0,
+  "additional_charges": 0.0,
+  "billing_cycle": "monthly"
+}

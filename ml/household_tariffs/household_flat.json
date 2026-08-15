@@ -1,0 +1,10 @@
+{
+  "name": "household_flat",
+  "display_name": "Household Flat Rate",
+  "currency": "INR",
+  "unit_price_per_kwh": 6.0,
+  "fixed_charge_per_month": 100.0,
+  "tax_pct": 5.0,
+  "additional_charges": 0.0,
+  "billing_cycle": "monthly"
+}
