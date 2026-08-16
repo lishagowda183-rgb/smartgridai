@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
@@ -349,7 +350,11 @@ def test_generate_returns_festivals_block_for_household(datasets):
     assert any(a["festival_name"] == "Diwali" for a in f["analysis"])
 
 
-def test_generate_applies_observed_effect_when_data_is_sufficient(datasets):
+@patch("backend.app.services.user_forecast.pd.Timestamp.now")
+def test_generate_applies_observed_effect_when_data_is_sufficient(
+    _mock_now, datasets
+):
+    _mock_now.return_value = pd.Timestamp("2025-06-01", tz=None)
     body = _generate(datasets["hourly_boost"]["dataset_id"], 365)
     f = body["festivals"]
     diwali = next(u for u in f["upcoming"] if u["festival_name"] == "Diwali")
